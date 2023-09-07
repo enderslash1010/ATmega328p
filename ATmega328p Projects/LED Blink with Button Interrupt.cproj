@@ -13,7 +13,7 @@
     <OutputFileExtension>.elf</OutputFileExtension>
     <OutputDirectory>$(MSBuildProjectDirectory)\$(Configuration)</OutputDirectory>
     <AssemblyName>ATmega328p Projects</AssemblyName>
-    <Name>ATmega328p Projects</Name>
+    <Name>LED Blink with Button Interrupt</Name>
     <RootNamespace>ATmega328p Projects</RootNamespace>
     <ToolchainFlavour>Native</ToolchainFlavour>
     <KeepTimersRunning>true</KeepTimersRunning>
