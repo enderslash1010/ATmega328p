@@ -98,20 +98,17 @@ inline void set(unsigned int LEDNum, int state)
 // LEDs are toggled in a line, only one LED is ON at a time
 void colorDot() 
 {
-	
 	for (int i = 0; i < 8; i++) 
 	{
 		set(i, 1); // Turn LED ON
 		_delay_ms(delay);
 		set(i, 0); // Turn LED OFF
 	}
-	
 }
 
 // LEDs are toggled in a line, and stay ON until all LEDs are ON, and then all LEDs are turned off in a line
 void colorTrail() 
 {
-	
 	for (int i = 0; i < 8; i++) 
 	{
 		set(i, 1);
