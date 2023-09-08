@@ -4,14 +4,31 @@
 		<title>ATmega328p Programming</title>
 	</head>
 	<body style="background-color:#181a1b;color:white;">
-		<h1 style="margin:15px 1% 15px 1%;">LED Blink with Button Interrupt</h1>
-		<div style="margin:25px 2% 25px 2%;">
-			<video controls width="1000"/>
-				<source src="Blink with Interrupt.mp4" type="video/mp4"/>
-			</video>
+		<h1 style="margin:25px 1% 15px 1%;">LED Blink with Button Interrupt</h1>
+		<div style="display:flex">
+			<div style="margin:25px 2% 30px 2%;">
+				<video controls width="1000"/>
+					<source src="Blink with Interrupt.mp4" type="video/mp4"/>
+				</video>
+			</div>
+			<div style="margin:25px 2% 30px 2%;">
+				<h2>Description</h2>
+				<p style="font-size:1.15em; line-height:23px">This program blinks 8 LED lights and switches between two modes. The first mode is where each LED is toggled individually, and each LED is switched off before the next LED in the line is switched on. As a whole, this mode creates an effect of a dot moving across the line of LEDs. The second mode is where each LED is first switched on one after the other until all the LEDs are on, then each LED is turned off in the same order. This creates an effect of trail or snake moving across the line of LEDs. The controller switches between these two modes indefinetly.</p>
+				<p style="font-size:1.15em; line-height:23px">If the button is pressed, it generates an interrupt that tells the controller to stop what it's doing and blink the LEDs a certain number of times. The number of blinks starts at 1, and increments by 1 after each button press. Interrupts are disabled when blinking the LEDs, so a new interrupt cannot interfere with the existing interrupt.</p>
+				<p style="font-size:1.15em; line-height:23px">More modes can easily be added by creating a new function that tells the LEDs what to do, adding a new case statement in the switch statement within the infinite loop, and adding 1 to numModes.</p> 
+			</div>
+		</div>
+		<div style="margin: 20px 2% 30px 2%;">
+			<h2>Code</h2>
+			<script src="https://emgithub.com/embed-v2.js?target=https%3A%2F%2Fgithub.com%2Fenderslash1010%2FATmega328p%2Fblob%2Fmain%2FATmega328p%2520Projects%2Fmain.c&style=a11y-dark&type=code&showBorder=on&showLineNumbers=on&showFileMeta=on&showFullPath=on"></script>
 		</div>
 		<div style="margin: 20px 2% 20px 2%;">
-			<script src="https://emgithub.com/embed-v2.js?target=https%3A%2F%2Fgithub.com%2Fenderslash1010%2FATmega328p%2Fblob%2Fmain%2FATmega328p%2520Projects%2Fmain.c&style=a11y-dark&type=code&showBorder=on&showLineNumbers=on&showFileMeta=on&showFullPath=on"></script>
+			<h2>Schematic</h2>
+			<p style="font-size:1.15em; line-height:22px">WIP</p>
+		</div>
+		<div style="margin: 20px 2% 20px 2%;">
+			<h2>Process</h2>
+			<p style="font-size:1.15em; line-height:22px">WIP</p>
 		</div>
 	</body>
 </html>
