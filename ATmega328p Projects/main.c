@@ -16,10 +16,11 @@ void colorBlink(int num);
 volatile unsigned int blinkCount = 1;
 
 // Handle interrupt
-ISR(INT1_vect) {
+ISR(INT1_vect) 
+{
 	cli(); // Disable interrupts when handling an interrupt (a button press)
 	colorBlink(blinkCount++);
-	sei(); // Enable global interrupts when done
+	sei(); // Enable global interrupts after resolving the interrupt
 }
 
 int main(void)
@@ -41,110 +42,100 @@ int main(void)
 	
 	while (1)
 	{
-		switch (counter % numModes) { // Select what the LEDs do based on the counter
+		switch (counter % numModes) // Select what the LEDs do based on the counter
+		{
 			case 0:
-			colorDot();
-			break;
+				colorDot();
+				break;
 			case 1:
-			colorTrail();
-			break;
+				colorTrail();
+				break;
 		}
 		counter++; // Increment counter to go to next mode
 	}
 }
 
-// LEDs are toggled in a line, only one LED is ON at a time
-void colorDot() {
-	for (int i = 0; i < 2; i++) {
-		PORTB |= (1<<i);
-		_delay_ms(delay);
-		PORTB &= ~(1<<i);
-	}
-	
-	PORTD |= (1<<PORTD2);
-	_delay_ms(delay);
-	PORTD &= ~(1<<PORTD2);
-	
-	PORTB |= (1<<PORTB2);
-	_delay_ms(delay);
-	PORTB &= ~(1<<PORTB2);
-	
-	for (int i = 4; i < 8; i++) {
-		PORTD |= (1<<i);
-		_delay_ms(delay);
-		PORTD &= ~(1<<i);
+// sets the LEDNum light to state (zero is OFF, non-zero is ON)
+inline void set(unsigned int LEDNum, int state) 
+{
+	switch (LEDNum) 
+	{
+		case 0:
+			if (state) PORTB |= (1<<PORTB0);
+			else PORTB &= ~(1<<PORTB0);
+			break;
+		case 1:
+			if (state) PORTB |= (1<<PORTB1);
+			else PORTB &= ~(1<<PORTB1);
+			break;
+		case 2:
+			if (state) PORTD |= (1<<PORTD2);
+			else PORTD &= ~(1<<PORTD2);
+			break;
+		case 3:
+			if (state) PORTB |= (1<<PORTB2);
+			else PORTB &= ~(1<<PORTB2);
+			break;
+		case 4:
+			if (state) PORTD |= (1<<PORTD4);
+			else PORTD &= ~(1<<PORTD4);
+			break;
+		case 5:
+			if (state) PORTD |= (1<<PORTD5);
+			else PORTD &= ~(1<<PORTD5);
+			break;
+		case 6:
+			if (state) PORTD |= (1<<PORTD6);
+			else PORTD &= ~(1<<PORTD6);
+			break;
+		case 7:
+			if (state) PORTD |= (1<<PORTD7);
+			else PORTD &= ~(1<<PORTD7);
+			break;
 	}
 }
 
+// LEDs are toggled in a line, only one LED is ON at a time
+void colorDot() 
+{
+	
+	for (int i = 0; i < 8; i++) 
+	{
+		set(i, 1); // Turn LED ON
+		_delay_ms(delay);
+		set(i, 0); // Turn LED OFF
+	}
+	
+}
+
 // LEDs are toggled in a line, and stay ON until all LEDs are ON, and then all LEDs are turned off in a line
-void colorTrail() {
-	// Turn all colors on individually
-	for (int i = 0; i < 2; i++) {
-		PORTB |= (1<<i);
+void colorTrail() 
+{
+	
+	for (int i = 0; i < 8; i++) 
+	{
+		set(i, 1);
 		_delay_ms(delay);
 	}
 	
-	PORTD |= (1<<PORTD2);
-	_delay_ms(delay);
-	
-	PORTB |= (1<<PORTB2);
-	_delay_ms(delay);
-	
-	for (int i = 4; i < 8; i++) {
-		PORTD |= (1<<i);
-		_delay_ms(delay);
-	}
-	
-	// Turn all colors off individually
-	for (int i = 0; i < 2; i++) {
-		PORTB &= ~(1<<i);
-		_delay_ms(delay);
-	}
-	
-	PORTD &= ~(1<<PORTD2);
-	_delay_ms(delay);
-	
-	PORTB &= ~(1<<PORTB2);
-	_delay_ms(delay);
-	
-	for (int i = 4; i < 8; i++) {
-		PORTD &= ~(1<<i);
+	for (int i = 0; i < 8; i++) 
+	{
+		set(i, 0);
 		_delay_ms(delay);
 	}
 }
 
 // LEDs are blinked ON/OFF n number of times
-void colorBlink(int n) {
-	for (int i = 0; i < n; i++) {
-		// Turn all on
-		for (int j = 0; j < 8; j++) {
-			switch (j) {
-				case 0: case 1:
-				PORTB |= (1 << j);
-				break;
-				case 3:
-				PORTB |= (1 << PORTB2);
-				break;
-				case 2: case 4: case 5: case 6: case 7:
-				PORTD |= (1 << j);
-				break;
-			}
-		}
+void colorBlink(int n) 
+{
+	for (int i = 0; i < n; i++) 
+	{
+		// Turn all LEDs ON
+		for (int i = 0; i < 8; i++) set(i, 1);
 		_delay_ms(500);
-		// Turn all off
-		for (int j = 0; j < 8; j++) {
-			switch (j) {
-				case 0: case 1:
-				PORTB &= ~(1 << j);
-				break;
-				case 3:
-				PORTB &= ~(1 << PORTB2);
-				break;
-				case 2: case 4: case 5: case 6: case 7:
-				PORTD &= ~(1 << j);
-				break;
-			}
-		}
+		
+		// Turn all LEDs OFF
+		for (int i = 0; i < 8; i++) set(i, 0);
 		_delay_ms(500);
 	}
 }
