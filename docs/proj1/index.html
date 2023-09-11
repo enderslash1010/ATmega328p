@@ -7,28 +7,116 @@
 		<h1 style="margin:25px 1% 15px 1%;">LED Blink with Button Interrupt</h1>
 		<div style="display:flex">
 			<div style="margin:25px 2% 30px 2%;">
-				<video controls width="1000"/>
-					<source src="Blink with Interrupt.mp4" type="video/mp4"/>
+				<video controls width="90%;"/>
+					<source src="Blink with Interrupt.mp4" type="video/mp4"/ alt="Video of microcontroller in operation">
 				</video>
+				<figcaption style="line-height:23px;">Video of the microcontroller in operation</figcaption>
 			</div>
-			<div style="margin:25px 2% 30px 2%;">
+			<div style="margin: 20px 2% 20px 2%;">
+				<image src="Schematic.jpg" width="90%;" alt="Picture of KiCAD Schematic"/>
+				<figcaption style="line-height:23px;">KiCAD Schematic</figcaption>
+			</div>
+		</div>
+		<div style="margin:25px 2% 50px 2%;">
 				<h2>Description</h2>
-				<p style="font-size:1.15em; line-height:23px">This program blinks 8 LED lights and switches between two modes. The first mode is where each LED is toggled individually, and each LED is switched off before the next LED in the line is switched on. As a whole, this mode creates an effect of a dot moving across the line of LEDs. The second mode is where each LED is first switched on one after the other until all the LEDs are on, then each LED is turned off in the same order. This creates an effect of trail or snake moving across the line of LEDs. The controller switches between these two modes indefinetly.</p>
-				<p style="font-size:1.15em; line-height:23px">If the button is pressed, it generates an interrupt that tells the controller to stop what it's doing and blink the LEDs a certain number of times. The number of blinks starts at 1, and increments by 1 after each button press. Interrupts are disabled when blinking the LEDs, so a new interrupt cannot interfere with the existing interrupt.</p>
-				<p style="font-size:1.15em; line-height:23px">More modes can easily be added by creating a new function that tells the LEDs what to do, adding a new case statement in the switch statement within the infinite loop, and adding 1 to numModes.</p> 
+				<div style="margin:5px 2% 30px 2%;">
+					<p style="font-size:1.15em; line-height:23px">This program blinks 8 LED lights and switches between two modes. The first mode is where each LED is toggled individually, and each LED is switched off before the next LED in the line is switched on. As a whole, this mode creates an effect of a dot moving across the line of LEDs. The second mode is where each LED is first switched on one after the other until all the LEDs are on, then each LED is turned off in the same order. This creates an effect of trail or snake moving across the line of LEDs. The controller switches between these two modes indefinetly.</p>
+					<p style="font-size:1.15em; line-height:23px">If the button is pressed, it generates an interrupt that tells the controller to stop what it's doing and blink the LEDs a certain number of times. The number of blinks starts at 1, and increments by 1 after each button press. </p>
+					<p style="font-size:1.15em; line-height:23px">More modes can easily be added by creating a new function that tells the LEDs what to do, adding a new case statement in the switch statement within the infinite loop, and adding 1 to numModes.</p> 
+				</div>
+			</div>
+		<div style="margin: 20px 2% 35px 2%;">
+			<h2>Process</h2>
+			
+			<h3>I. Components and Wire Connections</h3>
+			<div style="margin:5px 2% 30px 2%;">
+				<h4>1. LEDs and Resistors</h4>
+				<div style="margin:5px 2% 30px 2%;">
+					<p style="font-size:1.15em; line-height:23px">Each LED is connected to a unique pin on the board which sends a high (ON) or low (OFF) signal to the it. LED diodes are polarized, which means they only work in one direction. The current must flow from the anode, the longer wire, to the cathode, the shorter wire, in order for the LED to light up.</p>
+					<p style="font-size:1.15em; line-height:23px"> Each LED is also connected to ground through a resistor. These resistors limit the current going through the LEDs, so they don't burn out from high current. The red, yellow, and green LEDs have a 220 Ohm resistor, and the blue LEDs have a 10k Ohm resistor. The blue LEDs are significantly brighter than the others when using a 220 Ohm resistor, so using 10k Ohm resistor ensured the blue LEDs were of similar brightness to the rest.</p>
+				</div>
+				<h4>2. Button</h4>
+				<div style="margin:5px 2% 30px 2%;">
+					<p p style="font-size:1.15em; line-height:23px">A push button is used to generate an interrupt. So it must be connected to an interrupt pin, I chose to use INT1 which uses port D3 (PD3 in the schematic). An internal pull-up resistor will be enabled for this pin to make it's signal default to ON. We need to use this to create two distinct signals for pressing the button and not pressing the button. So when the button is pressed the value at pin D3 will be OFF (since the button sends the signal to ground), and when the button isn't pressed the value at pin D3 will be ON. If a pull-up resistor isn't used, both cases will have pin D3 be OFF. We will configure the interrupt registers to generate an interrupt on the falling-edge of pin D3's signal, which is when the button is pressed.</p>
+				</div>
+				<h4>3. Connections to the Board</h4>
+				<div style="display:flex;">
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">The pins on the board are connected to the pin, port, and data direction registers in the ATmega328p according to the board's datasheet. The datasheet to the right shows which pins on the board are associated with which CPU register. For example, pin 5 on the board is associated with PD5, which includes PIND5 for getting input, PORTD5 for setting output, and DDD5 to indicate using input (0) or output (1). The next section goes into detail about these registers, and how they are initialized for this project.</p>
+						<a href="https://www.arduino.cc/en/uploads/Main/Arduino_Uno_Rev3-schematic.pdf" style="font-size:1.15em; line-height:23px;color:cyan;">Link to Arduino UNO Schematic</a>
+					</div>
+					<div style="margin:10px 5% 30px 5%;">
+						<image src="boardToCPU.png" width="400"/>
+					</div>
+				</div>
+			</div>
+			
+			<h3>II. Configuring Registers</h3>
+
+			<div style="margin:5px 2% 30px 2%;">
+				<a href="https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf" style="font-size:1.15em; line-height:23px;color:cyan;">Link to ATmega328p Datasheet</a>
+				<h4>1. Data Direction Registers</h4>
+				<div style="margin:5px 2% 30px 2%;">
+					<p style="font-size:1.15em; line-height:23px">The data direction registers determine whether to use the register as an input or output. In the context of this project, the LED pins should be set to output, and the button pin should be set to input. Below is a section of the datasheet showing the port B data direction register</p>
+					<image src="DDRB.png" width="800"/>
+					<p style="font-size:1.15em; line-height:23px">LED D0, D1, and D3 use DDB0, DDB1, and DDB2. Since the LEDs are output, we set the bits at location DDB0-DDB2 of DDRB to 1 to indicate output. This is set using code: DDRB = 0b00000111.</p>
+					<p style="font-size:1.15em; line-height:23px">The rest of the LEDs use port D. Below is an excerpt of the datasheet showing the port D data direction register.</p>
+					<image src="DDRD.png" width="800"/>
+					<p style="font-size:1.15em; line-height:23px">LED D2 and LEDs D4-D7 use DDD2, and DDD4-7. So, we set the bits at these locations of DDRD to 1 to indicate output. The button is connected through port D3. Since the button is an input, port D3 in the data direction register needs to be set for input with a 0. Both of these are set using: DDRD = 0b11110100.</p>
+					<p style="font-size:1.15em; line-height:23px"></p>
+				</div>
+				<h4>2. Interrupt Registers</h4>
+				<div style="margin:5px 2% 30px 2%;">
+					<p style="font-size:1.15em; line-height:23px">The interrupt registers need to be configured to allow the button to send interrupts. The External Interrupt Control Register (EICRA), shown below, determines what type of signal triggers an interrupt.</p>
+					<image src="EICRA.png" width="800"/>
+					<p style="font-size:1.15em; line-height:23px">Since the button is connected through Interrupt 1 (INT1/PD3), the bits at ISC11 and ISC10 need to be set. Below is an excerpt from the datasheet describing the different settings for INT1.</p>
+					<image src="EICRA Table.png" width="800"/>
+					<p style="font-size:1.15em; line-height:23px">In Section I.2. above, it was determined that INT1 would read as high when the button isn't pressed, and low when the button is pressed. So, an interrupt should occur when INT1 detects the signal go from high to low. This is also called the falling edge of INT1. From the third row of Table 12-1, ISC11 is set to 1 and ISC10 is set to 0. The code to do this is: EICRA = (0b10 << ISC10).</p>
+					<p style="font-size:1.15em; line-height:23px">The External Interrupt Mask Register (EIMSK) needs to be set to allow interrupts. Below is a section of the datasheet showing the EIMSK register.</p>
+					<image src="EIMSK.png" width="800"/>
+					<p style="font-size:1.15em; line-height:23px">To allow interrupts for INT1, INT1 in EIMSK is set to 1 using the code: EIMSK = (1 << INT1)</p>
+					<p style="font-size:1.15em; line-height:23px">Also, the code needs to call sei() to enable global interrupts. Conversly, cli() disables global interrupts.</p>
+				</div>
+				<h4>3. Port D Register</h4>
+				<div style="margin:5px 2% 30px 2%;">
+					<p style="font-size:1.15em; line-height:23px">Section I.2. discussed the need for a pull-up resistor for port D3. To enable a pull-up resistor for port D3, the data direction register for port D3 (DDD3 in DDRD) is set to input (0) and the port register for port D3 (PORTD3 in PORTD) is set to high (1). When setting the DDRD earlier (Section II.1.), DDD3 was already set to 0. Now, the port register is set using: PORTD = (1 << PORTD3)</p>
+				</div>
+			</div>
+			
+			<h3>III. Programming</h3>
+			<div style="margin:5px 2% 30px 2%;">
+				<h4>1. Superloop</h4>
+				<div style="margin:5px 2% 30px 2%;">
+					<p p style="font-size:1.15em; line-height:23px">In embedded programming, a superloop is an infinite loop in the main function where all the repeating tasks for the microcontroller are put. Any initialization steps are put before the superloop.</p>
+					<p p style="font-size:1.15em; line-height:23px">For this project, the registers are initialized, global interrupts are enabled with sei(), and the variable counter is initialized before the superloop. The superloop contains code that runs a mode based on the counter's value, so it will switch through all the modes and loop back around to the first.</p>
+				</div>
+				<h4>2. set Function</h4>
+				<div style="margin:5px 2% 30px 2%;">
+					<p p style="font-size:1.15em; line-height:23px">The set function sets the state of an LED to ON or OFF. For example, set(2, 0) would turn LED2 to OFF, and set(0, 1) would turn LED0 to ON.</p>
+					<p p style="font-size:1.15em; line-height:23px">This function toggles a bit in port B or D that's associated with the given LED to 0 for OFF or 1 for ON. Bitwise operations (|= and &=) are used to only modify one of the bits in a port register. To set a bit to 1, the bitwise OR assignment operator is used to set the specified bit to 1 while the rest of the bits don't change value, since OR-ing anything with 1 returns a 1 and OR-ing a variable x with 0 returns x. To clear a bit to 0, the bitwise AND assignment operator is used to set the specified bit to 0 while the rest of the bits are unchanged, since AND-ing a 0 with anything gets a 0 and AND-ing a 1 with a variable x returns x.</p>
+				</div>
+				<h4>3. colorDot Mode</h4>
+				<div style="margin:5px 2% 30px 2%;">
+					<p p style="font-size:1.15em; line-height:23px">colorDot mode toggles the LEDs in a line, where only one LED is ON at a time.</p>
+				</div>
+				<h4>4. colorTrail Mode</h4>
+				<div style="margin:5px 2% 30px 2%;">
+					<p p style="font-size:1.15em; line-height:23px">colorTrail mode toggles the LEDs in a line, and stay ON until all of the LEDs are ON. Then, the LEDs are turned OFF in a line.</p>
+				</div>
+				<h4>6. colorBlink Mode</h4>
+				<div style="margin:5px 2% 30px 2%;">
+					<p p style="font-size:1.15em; line-height:23px">colorBlink mode turns all the LEDs ON at one time, and then turns all the LEDs OFF at one time, for n number of times. This mode is switched into when an interrupt is sent on INT1.</p>
+				</div>
+				<h4>5. Handling Interrupts</h4>
+				<div style="margin:5px 2% 30px 2%;">
+					<p p style="font-size:1.15em; line-height:23px">The interrupts are handled through the ISR function, with the parameter being the INT1 vector. The ISR function is called every time the button is pressed.</p>
+					<p p style="font-size:1.15em; line-height:23px">The number of blinks shown increases with each button press, so there needs to be a variable blinkCount for the current number of blinks to show that is incremented with each interrupt. Since blinkCount is changed in an interrupt, it needs to declared volatile, to tell the compiler that this variable's value can change unexpectedly.</p>
+				</div>
 			</div>
 		</div>
 		<div style="margin: 20px 2% 30px 2%;">
 			<h2>Code</h2>
 			<script src="https://emgithub.com/embed-v2.js?target=https%3A%2F%2Fgithub.com%2Fenderslash1010%2FATmega328p%2Fblob%2Fmain%2FATmega328p%2520Projects%2Fmain.c&style=a11y-dark&type=code&showBorder=on&showLineNumbers=on&showFileMeta=on&showFullPath=on"></script>
-		</div>
-		<div style="margin: 20px 2% 20px 2%;">
-			<h2>Schematic</h2>
-			<p style="font-size:1.15em; line-height:22px">WIP</p>
-		</div>
-		<div style="margin: 20px 2% 20px 2%;">
-			<h2>Process</h2>
-			<p style="font-size:1.15em; line-height:22px">WIP</p>
 		</div>
 	</body>
 </html>
