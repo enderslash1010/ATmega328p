@@ -71,7 +71,7 @@
 					<image src="EICRA.png" width="800"/>
 					<p style="font-size:1.15em; line-height:23px">Since the button is connected through Interrupt 1 (INT1/PD3), the bits at ISC11 and ISC10 need to be set. Below is an excerpt from the datasheet describing the different settings for INT1.</p>
 					<image src="EICRA Table.png" width="800"/>
-					<p style="font-size:1.15em; line-height:23px">In Section I.2. above, it was determined that INT1 would read as high when the button isn't pressed, and low when the button is pressed. So, an interrupt should occur when INT1 detects the signal go from high to low. This is also called the falling edge of INT1. From the third row of Table 12-1, ISC11 is set to 1 and ISC10 is set to 0. The code to do this is: EICRA = (0b10 << ISC10).</p>
+					<p style="font-size:1.15em; line-height:23px">In Section I.2. above, it was determined that INT1 would read as high when the button isn't pressed, and low when the button is pressed. So, an interrupt should occur when INT1 detects the signal go from high to low. This is also called the falling edge of INT1. From the third row of Table 12-1, ISC11 is set to 1 and ISC10 is set to 0. The code to do this is: EICRA = (1 << ISC11) | (0 << ISC10).</p>
 					<p style="font-size:1.15em; line-height:23px">The External Interrupt Mask Register (EIMSK) needs to be set to allow interrupts. Below is a section of the datasheet showing the EIMSK register.</p>
 					<image src="EIMSK.png" width="800"/>
 					<p style="font-size:1.15em; line-height:23px">To allow interrupts for INT1, INT1 in EIMSK is set to 1 using the code: EIMSK = (1 << INT1)</p>
