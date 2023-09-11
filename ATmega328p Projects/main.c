@@ -18,20 +18,18 @@ volatile unsigned int blinkCount = 1;
 // Handle interrupt
 ISR(INT1_vect) 
 {
-	cli(); // Disable interrupts when handling an interrupt (a button press)
 	colorBlink(blinkCount++);
-	sei(); // Enable global interrupts after resolving the interrupt
 }
 
 int main(void)
 {
 	
-	DDRB |= 0b00000111; // Set all LED ports using port B to output
-	DDRD |= 0b11110100; // Set all LED ports using port D to output, interrupt INT1 to input, PD0 and PD1 are reserved for communication with host
+	DDRB = 0b00000111; // Set all LED ports using port B to output
+	DDRD = 0b11110100; // Set all LED ports using port D to output, interrupt INT1 to input, PD0 and PD1 are reserved for communication with host
 	
-	PORTD |= (1 << PORTD3); // Set port D3 to high, and since DDD3/INT1 is set to input, the pull-up resistor is activated
+	PORTD = (1 << PORTD3); // Set port D3 to high, and since DDD3/INT1 is set to input, the pull-up resistor is activated
 	
-	EICRA |= (0b10 << ISC10); // Set ISC11 to 1 and ISC10 to 0, this generates an interrupt request on the falling edge of INT1
+	EICRA = (1 << ISC11) | (0 << ISC10); // Set ISC11 to 1 and ISC10 to 0, this generates an interrupt request on the falling edge of INT1
 	EIMSK = (1 << INT1); // Set INT1 to 1 in interrupt mask register (Enables interrupts on INT1)
 	
 	sei(); // Global interrupt enable
