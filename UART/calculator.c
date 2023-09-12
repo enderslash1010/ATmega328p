@@ -36,7 +36,7 @@ void compute() {
 	}
 }
 
-// TODO: Evaluates infix expression
+// Evaluates infix expression
 int infixEval(char *infix, int length)
 {
 	// Initialize stacks
