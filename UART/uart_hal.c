@@ -13,11 +13,6 @@ ISR(USART_RX_vect) // Receiver Complete Interrupt
 	rx_write_pos %= RX_BUFFER_SIZE; // Limit rx_write_pos to be less than RX_BUFFER_SIZE, so rx_write_pos == RX_BUFFER_SIZE wraps around to 0
 }
 
-ISR(USART_TX_vect) // Transmitter Complete Interrupt
-{
-	// Can leave empty, the controller sets UDRE0 implicitly (is 1 if the data register is empty, i.e. it's ready to transmit new data; is 0 if it's still transmitting previous data)
-}
-
 // Initializes registers for UART communication with host computer
 void uart_init(uint32_t baudRate, uint8_t high_speed) 
 {
@@ -35,7 +30,7 @@ void uart_init(uint32_t baudRate, uint8_t high_speed)
 	UBRR0L = (UBRR0Val & 0x00FF);
 	
 	// Configure USART Control and Status Register 0B
-	UCSR0B |= (1 << RXCIE0) | (1 << TXCIE0) // Receiver/Transmitter Interrupt Enable 0
+	UCSR0B |= (1 << RXCIE0) // Receiver Interrupt Enable 0 (We don't need to do anything on transmitter complete)
 			| (1 << RXEN0) | (1 << TXEN0); // Receiver/Transmitter Enable 0
 }
 
@@ -83,4 +78,3 @@ uint8_t uart_read_byte(void)
 	
 	return data;
 }
-
