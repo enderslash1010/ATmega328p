@@ -13,7 +13,7 @@
     <OutputFileExtension>.elf</OutputFileExtension>
     <OutputDirectory>$(MSBuildProjectDirectory)\$(Configuration)</OutputDirectory>
     <AssemblyName>UART</AssemblyName>
-    <Name>UART</Name>
+    <Name>UART and I2C</Name>
     <RootNamespace>UART</RootNamespace>
     <ToolchainFlavour>Native</ToolchainFlavour>
     <KeepTimersRunning>true</KeepTimersRunning>
@@ -139,13 +139,31 @@
     <Compile Include="calculator.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="LCD.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="LCD.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="main.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="twi_hal.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="twi_hal.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="uart_hal.c">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="uart_hal.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="util.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="util.h">
       <SubType>compile</SubType>
     </Compile>
   </ItemGroup>
