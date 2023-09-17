@@ -32,6 +32,9 @@ void uart_init(uint32_t baudRate, uint8_t high_speed)
 	// Configure USART Control and Status Register 0B
 	UCSR0B |= (1 << RXCIE0) // Receiver Interrupt Enable 0 (We don't need to do anything on transmitter complete)
 			| (1 << RXEN0) | (1 << TXEN0); // Receiver/Transmitter Enable 0
+			
+	// Set parity mode
+	UCSR0C |= (1 << UPM01); // parity mode enabled, even parity
 }
 
 // Sends one byte through the transmitter
