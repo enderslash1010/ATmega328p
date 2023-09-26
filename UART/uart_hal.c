@@ -72,7 +72,7 @@ uint16_t uart_read_count(void)
 // Returns the next data byte from the rx_buffer
 uint8_t uart_read_byte(void)
 {
-	volatile static uint16_t rx_read_pos = 0; // The index of rx_buffer to read from, and make this variable local to this function (static)
+	static uint16_t rx_read_pos = 0; // The index of rx_buffer to read from, and make this variable local to this function (static)
 	uint8_t data = 0; // Initialize data to 0
 	
 	data = rx_buffer[rx_read_pos++]; // Set data to the byte of rx_buffer at rx_read_pos, increment rx_read_pos by 1 after
