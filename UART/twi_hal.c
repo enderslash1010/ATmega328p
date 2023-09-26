@@ -9,10 +9,10 @@ ISR(TWI_vect)
 }
 
 // Initiate TWI (I2C) communication with speed kHz bus
-void twi_init(uint32_t speed)
+void twi_init(uint32_t SCL_freq)
 {
-	uint32_t gen_t = ((F_CPU/speed) - 16)/2; // Bit Rate Generator Unit (See ATmega328p datasheet pg 180)
-	TWBR = gen_t & 0xFF; // TWBR is 2 bytes
+	uint32_t twbr = ((F_CPU/SCL_freq) - 16)/2; // Bit Rate Generator Unit (See ATmega328p datasheet pg 180)
+	TWBR = twbr & 0xFF; // TWBR is 1 byte
 	
 	TWCR = (1 << TWEN) | (1 << TWIE); // Set TWI Enable Bit to 1, set TWI Interrupt Enable to 1
 	
