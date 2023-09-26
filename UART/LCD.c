@@ -41,7 +41,7 @@ LCD_t LCD_init(uint8_t addr, uint8_t rows, uint8_t cols, uint32_t bus_speed, uin
 	// Initiate TWI(I2C) communication
 	twi_init(bus_speed);
 	
-	// TODO: Go through initialization instructions for LCD (from data sheet)
+	// Go through initialization instructions for LCD (from data sheet)
 	_delay_ms(20); // Wait more than 15ms after Vcc rises to 4.5V
 	send_twi(&lcd, 0); // Pull RS and R/W low to begin sending commands
 	send_enable(&lcd, 0b0011 << 4); // Special function set
