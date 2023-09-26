@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>ATmega328p Programming</title>
+	</head>
+	<body style="background-color:#181a1b;color:white;">
+		<h1 style="margin:25px 1% 15px 1%;">Calculator using UART and I2C</h1>
+		<div style="display:flex">
+			<div style="margin:25px 2% 30px 2%;">
+				<iframe width="700" height="394" src="https://www.youtube.com/embed/CwSsVCekWgE?si=gkiOHJMxpoKao55n" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+				<figcaption style="line-height:23px;">Video of microcontroller in operation with keyboard and LCD</figcaption>
+			</div>
+			<div style="margin:25px 2% 30px 2%;">
+				<video controls width="700;"/>
+					<source src="Calculator Host.mp4" type="video/mp4"/ alt="Video of host computer terminal during operation">
+				</video>
+				<figcaption style="line-height:23px;">Video of host computer terminal during operation</figcaption>
+			</div>
+		</div>
+		<div style="display:flex">
+			<div style="margin: 20px 2% 20px 2%;">
+				<image src="Schematic.jpg" width="1000;" alt="Picture of KiCAD Schematic"/>
+				<figcaption style="line-height:23px;">KiCAD Schematic</figcaption>
+			</div>
+			<div style="margin:25px 2% 50px 2%;">
+					<h2>Description</h2>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">The user sends input using a keyboard, which is then sent to the microcontroller through the Universal Asynchronous Receiver-Transmitter (UART) communication protocol. The microcontroller keeps any valid inputs, like numbers and mathematical operators (+, -, *, /), and ignores any invalid input, like letters. Valid input is sent to the Liquid Crystal Display (LCD) screen using the Inter-Integrated Circuit (I2C) communication protocol, and back to the host computer using UART.</p>
+						<p style="font-size:1.15em; line-height:23px">When the user presses 'Enter', the microcontroller evaluates the inputted mathematical expression using a modified Shunting Yard algorithm. The evaluated result is then output to the second line on the LCD and to the host computer's terminal. Pressing 'Enter' when no expression is entered prompts the user to enter a mathematical expression. After an expression is evaluated, the user can input another expression.</p>
+						<p style="font-size:1.15em; line-height:23px">If the right edge of the LCD screen is reached while inputting an expression, the display is shifted by 1 character to the right to show the most recently inputted character.</p> 
+					</div>
+				</div>
+		</div>
+		<div style="margin: 20px 2% 35px 2%;">
+			<h2>Process</h2>
+			<h3>I. Components and Connections</h3>
+				<div style="margin:5px 2% 30px 2%;">
+					<h4>1. Micontroller to I2C Backpack</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">The ATmega328p's Serial Clock (SCL) and Serial Data (SDA) pins are connected to the SCL and SDA pins on the I2C backpack module on the LCD. The microcontroller uses port C4 and C5 for SDA and SCL respectively. Since the bus drivers of I2C devices are open-drain or open-collector, both SDA and SCL lines must use a pull-up resistor to pull the bus high when in the idle state. The pull-up resistors are denoted as R1 and R2 in the schematic.</p>
+						<p style="font-size:1.15em; line-height:23px">Only one I2C module is used in this program, so there is no need to connect A0-A2 to configure the hardware address of the device. This leaves these pins floating, so they will all read high (1). Therefore, the configurable device address will be 111.</p>
+					</div>
+					<h4>2. I2C Backpack to LCD Pins</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">The I2C backpack module is soldered onto the back of the LCD module as shown below.</p>
+						<image src="I2CBackpack.jpg" width="800;" alt="Picture of the I2C module soldered onto the back to the LCD module"/>
+						<p style="font-size:1.15em; line-height:23px">The output pins on the I2C module are P0-P7, and are connected to LCD input pins. Since there are only 8 output pins, the DB0-DB3 pins on the LCD are unconnected. This means that only 4-bit mode can be used, since DB0-DB3 are ignored in this mode.</p>
+						<p style="font-size:1.15em; line-height:23px">The specific connections are as follows: P0 to Register Select (RS), P1 to Read/Write Select (R/W), P2 to Enable (E), P3 to the backlight (K), and P4-P7 to DB4-DB7.</p>
+					</div>
+				</div>
+			<h3>II. UART</h3>
+				<div style="margin:5px 2% 30px 2%;">
+					<h4>1. Overview of Interface</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">The Universal Asynchronous Receiver-Transmitter (UART) communication protocol is used to facilitate communication between microcontrollers and peripherals. In the context of this program, the microcontroller receives keyboard input from the host computer and sends back valid input and results to the host computet using the UART interface.</p>
+						<p style="font-size:1.15em; line-height:23px">UART uses one wire for each direction data is sent. For example, if transmission of data is only needed from microcontroller to an external UART receiver, then only one wire is needed to connect the Transmitter (TX) pin on the microcontroller to the Receiver (RX) pin on the external device.</p>
+						<p style="font-size:1.15em; line-height:23px">For this project, two-way communication (also known as duplex) is required. The ATmega328p board includes hardware to send and receive UART data frames through the micro-USB port to the host computer, so there is no need for a separate board to handle UART communication.</p>
+						<p style="font-size:1.15em; line-height:23px">Data frames are used as a means to send and receive UART messages. A transmitter sends a data frame on it's TX pin, and the receiver reads this data frame on it's RX pin. Below is an illustration of the UART data frame format [1].</p>
+						<image src="UARTOverview.jpg" width="800;" alt="UART Frame Formats"/>
+						<p style="font-size:1.15em; line-height:23px">To initiate sending a frame, the transmitter sends the start bit which is always low to differentiate the signal from the high idle state. After sending the start bit, the transmitter sends anywhere from 5-9 data bits depending on the character size that is set. If the parity bit is enabled, the transmitter sends this bit after all the data bits. The end of the frame is denoted by 1 or 2 stop bits which are always high.</p>
+						<p style="font-size:1.15em; line-height:23px">After sending the stop bit(s), the transmitter can either end communication by having the TX line go idle (high), or it can transmit another data frame by sending the start bit again.</p>
+					</div>
+					<h4>2. Initializing Registers</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">The ATmega328p only has 1 UART interface, so for the following registers, n = 0. Keep in mind that USART is another name for UART.</p>
+						<p style="font-size:1.15em; line-height:23px">The USART I/O Data Register n (UDRn) holds both the transmission and receive data buffers. Whenever a data frame is received, the data bits will be put into receive data buffer register (RXB) register in the UDRn register. Whenever a data frame is about to be transmitted, the data bits will be put into the transmit data buffer (TXB) register in the UDRn register. Below is a figure showing the UDRn register [1].</p>
+						<image src="UDRn.jpg" width="800;" alt="USART I/O Data Register n"/>
+						<p style="font-size:1.15em; line-height:23px">The USART Control and Status Register n A (UCSRnA) mostly holds flag bits to indicate the current UART state. But it also includes the double speed configuration bit. The picture below from the microcontroller datasheet illustrates this register [1].</p>
+						<image src="UCSRnA.jpg" width="800;" alt="USART Control and Status Register n A"/>
+						<p style="font-size:1.15em; line-height:23px">Since we are using asynchronous UART, the U2Xn bit can be set to 1 to enable double the speed of data transmission. When calling the uart_init function in uart_hal.c with the parameter high_speed set to 1, the following code sets the U2Xn bit to 1: UCSR0A |= (1 << U2X0). In this project, high speed will not be used.</p>
+						<p style="font-size:1.15em; line-height:23px">The USART Control and Status Register n B (UCSRnB) holds interrupt enable, receiver enable, transmitter enable, one bit of the character size, and the 9th receive/transmit bit when using a 9-bit character size. Below is a picture of this register [1].</p>
+						<image src="UCSRnB.jpg" width="800;" alt="USART Control and Status Register n B"/>
+						<p style="font-size:1.15em; line-height:23px">For this project, the RX Complete Interrupt Enable (RXCIEn), Receiver Enable (RXENn), and Transmitter Enable (TXENn) bits are set to 1. The code to set this register is: UCSR0B |= (1 << RXCIE0) | (1 << RXEN0) | (1 << TXEN0).</p>
+						<p style="font-size:1.15em; line-height:23px">The TX Complete Interrupt Enable (TXCIEn) is not needed in this project, since nothing needs to be done upon completing a transmission, and it can be determined from the flag bit UDREn in the UCSRnA if there is an ongoing transmission.</p>
+						<p style="font-size:1.15em; line-height:23px">This register also hold one bit that determines the character size, or how many data bits are in each UART data frame. Since we are using an 8-bit character size, UCSZn2 = 0 and doesn't need to be explicitly set (See Table 19-7).</p>
+						<p style="font-size:1.15em; line-height:23px">The USART Control and Status Register n C (UCSRnC) holds the rest of the status and control bits relating to UART communication. Below is an excerpt of the datasheet showing UCSRnC [1].</p>
+						<image src="UCSRnC.jpg" width="800;" alt="USART Control and Status Register n C"/>
+						<p style="font-size:1.15em; line-height:23px">Since this program will use asynchronous USART, the UMSELn1 and UMSELn0 bits should be 0, and because the initial values of these bits are 0, there is no need to explicitly set them. See Table 19-4 below for details on UMSELn bits settings [1].</p>
+						<image src="UMSELn.jpg" width="800;" alt="USART Mode Select Table"/>
+						<p style="font-size:1.15em; line-height:23px">The parity mode is enabled for error detection. Table 19-5 below describes bit settings for all of the parity modes [1].</p>
+						<image src="UPMn.jpg" width="800;" alt="Parity Mode Table"/>
+						<p style="font-size:1.15em; line-height:23px">When using even parity mode, the parity bit is 0 when there are an even number of 1's in the data bits and 1 when there are an odd number of 1's in the data bits. Odd parity mode is the opposite. In the context of this project, even and odd parity accomplish the same result. Even parity mode is enabled using: UCSR0C |= (1 << UPM01)</p>
+						<p style="font-size:1.15em; line-height:23px">The USBSn bit configures the number of stop bits in each data frame. A 1-bit stop bit is used, so there is no need to explicitly set this bit since it's initial value is already 0 [1].</p>
+						<image src="USBSn.jpg" width="800;" alt="Stop Bit Select Table"/>
+						<p style="font-size:1.15em; line-height:23px">For convenience, the character size is set to 8, so an 8-bit unsigned integer (uint8_t) can be used to store all the data bits that are sent/received.</p>
+						<image src="UCSZn.jpg" width="800;" alt="Character Size Select Table"/>
+						<p style="font-size:1.15em; line-height:23px">Referring to Table 19-7 [1] above, UCSZ01 and UCSZ00 should be set to 1 (Note that UCSZ02 was set earlier). Looking back at the UCSRnC register, these bits are already initialized to 1's, so there is no need to set them in the code.</p>
+						<p style="font-size:1.15em; line-height:23px">Finally, the Baud rate is configured. The Baud rate determines the speed of data transmission (number of bits/second). Below is a table that contains formulas for calculating Baud rate and the value of the UBRRn register [1].</p>
+						<image src="BaudRateFormula.jpg" width="800;" alt="Equations for Calculating Baud Rate Register Setting"/>
+						<p style="font-size:1.15em; line-height:23px">For this program, the user will supply the Baud rate when initializing UART communication (as a parameter of the uart_init function). To set the UBRRn value, either the asynchronous normal mode or asynchronous double speed formula is used. This is done in the code with: uint32_t UBRR0Val = (F_CPU/(speed*baudRate)) - 1, where speed=16 for normal mode and speed=8 for double speed mode. The UBRR0 value is stored in a variable, since the high and low bits of the register are set separately.</p>
+						<p style="font-size:1.15em; line-height:23px">The figure below shows the layout of the UBBRnL and UBBRnH registers [1]. The higher 4 bits of UBBRn are stored in UBBRnH, and the lower 8 bits are stored in UBBRnL.</p>
+						<image src="UBRRnLH.jpg" width="800;" alt="USART Baud Rate Registers"/>
+						<p style="font-size:1.15em; line-height:23px">These two lines of code set the UBBR0 register: UBRR0H = (UBRR0Val & 0x0F00) >> 8; UBRR0L = (UBRR0Val & 0x00FF).</p>
+					</div>
+					<h4>3. Sending Data</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">Sending 8 bits, or a byte, is handled in the function uart_send_byte. First, the program waits for the transmission buffer (TXB) to be empty. If the TXB is not empty, then the microcontroller is busy sending data, so we need to wait until it's done before sending more data. The UDRE0 bit in the UCSR0A register holds a 1 if the TXB is empty and ready to accept new data or a 0 if the TXB is being used to send data. Below is an excerpt of the datasheet explaining the UDREn bit [1].</p>
+						<image src="UDREn.jpg" width="800;" alt="UDREn: USART Data Register Empty Description"/>
+						<p style="font-size:1.15em; line-height:23px">A spinlock is used to wait until the TXB is empty. This is accomplished using a while loop that runs when the UDRE0 bit is 0, and exits the loop when the bit is 1. The code used is: while (!(UCSR0A & (1 << UDRE0)))</p>
+						<p style="font-size:1.15em; line-height:23px">After ensuring the TXB is empty, a new data byte is put into the TXB. This is done by setting UDR0 = c, where c is an 8 bit variable supplied through a parameter. After the new data is put into the TXB, the hardware handles sending the data frame through the TX pin to the receiver's RX pin.</p>
+						<p style="font-size:1.15em; line-height:23px">A string of characters is sent by calling uart_send_byte on each character in the string and sending the null terminator character ('\0') last to denote the end of the string.</p>
+					</div>
+					<h4>4. Receiving Data and the Receive Buffer</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">A circular receive buffer is implemented in the software to temporarily hold received data. This software buffer is needed to ensure no bytes are lost since the hardware receive buffer only holds a byte at a time, and is overwritten after each receive. In the code, the buffer is called rx_buffer, and has an associated variable rx_count to hold the number of unread bytes. Both the buffer and status variable are declared volatile, as they can change at any moment since they are modified in an interrupt service routine (ISR), and static, to make them inaccessible to other files.</p>
+						<p style="font-size:1.15em; line-height:23px">The function uart_read_byte returns the next unread data byte from the buffer, assuming that rx_count > 0. This function maintains the variable rx_read_pos to determine the index of the buffer to read from, and it's incremented after each read. If rx_read_pos is incremented past the size of the buffer, then rx_read_pos gets set back to 0.</p>
+						<p style="font-size:1.15em; line-height:23px">rx_read_pos is declared static to preserve it's value between calls to this function.</p>
+						<p style="font-size:1.15em; line-height:23px">After reading a byte from the buffer, rx_count is decremented by 1 to denote that a byte has been read.</p>
+					</div>
+					<h4>5. Receiver Complete Interrupt</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">Earlier, the Receiver Complete Interrupt (RXCIE0) was enabled in the UCSR0B register. This means that a hardware interrupt will be sent when a byte of data has been received by the microcontroller. To handle this interrupt, an Interrupt Service Routine (ISR) function is created.</p>
+						<p style="font-size:1.15em; line-height:23px">Similar to the uart_read_byte function, the ISR uses a static variable, rx_write_pos, to keep track of where to put a new byte in the buffer. This variable needs to be volatile as well, since it is modified within an ISR. The volatile keyword tells the compiler to not optimize rx_write_pos and always check the true value of the variable in memory, since the compiler cannot predict when an ISR is called.</p>
+						<p style="font-size:1.15em; line-height:23px">The ISR writes the newly received byte into the buffer to be retrieved later by uart_read_byte. rx_count is incremented by 1, and rx_write_pos wraps around to 0 if needed.</p>
+					</div>
+				</div>
+			<h3>III. TWI/I2C</h3>
+				<div style="margin:5px 2% 30px 2%;">
+					<h4>1. Overview of Interface</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">The Inter-Integrated Circuit (I2C) protocol, like UART, another communication protocol to faciliate communication between microcontrollers and peripherals. But unlike UART, I2C can communicate to multiple devices on the same bus, and is synchronized to a clock signal (synchronous).</p>
+						<p style="font-size:1.15em; line-height:23px">The I2C bus is comprised of two bidirectional open-drain lines, the serial data line (SDA) and serial clock line (SCL) connected to pull-up resistors. An open-drain comprises of a transistor which pulls the output (emitter) to ground when a high voltage is applied to the base. When a low voltage is applied to the base, the output is left floating or undefined. The open-drain lines require pull-up resistors to avoid this floating state, and instead output a high voltage when a low voltage is applied to the base.</p>
+						<p style="font-size:1.15em; line-height:23px">Multiple I2C-compatible devices can be connected to the same SDA and SCL lines, as long as their device addresses are different. Most of these devices include some way to modify its device address. For example, the LCD screen used in this project has 3 pins A0-A2 to configure the lower 3 bits of the device address.</p>
+						<p style="font-size:1.15em; line-height:23px">TWI is AVR's version of I2C, and is fully compatible with the I2C protocol. For the purposes of this project, TWI and I2C are equivalent.</p>
+						<p style="font-size:1.15em; line-height:23px">Figure 21-6 [1] below illustrates a typical data transmission via TWI.</p>
+						<image src="TWIOverview2.jpg" width="800;" alt="Typical data transmission using TWI interface"/>
+						<p style="font-size:1.15em; line-height:23px">Since TWI is synchronous, it relies on the clock to determine when to sample the data line. When the clock is high, then the data line must be stable (either high/low, not in-between).</p>
+						<p style="font-size:1.15em; line-height:23px">The transmission begins with the SDA line being pulled low, since it's at an idle high voltage from the pull-up resistor, while the SCL is high. This is referred to as the START condition.</p>
+						<p style="font-size:1.15em; line-height:23px">After sending the START condition, the transmitter sends the device address of the device it wants to talk to, followed by a Read/Write (R/W) and Acknowledge (ACK) bit. A R/W value of 0 indicates a write to the device, and a R/W value of 1 indicates a read from the device. The device address with the read or write bit is called SLA+R or SLA+W respectively.</p>
+						<p style="font-size:1.15em; line-height:23px">The ACK bit is always 1 from the perspective of the transmitter, and is a result of the transmitter releasing the SDA line to an idle high voltage. If the device that the transmitter called for received its message, then that device would pull the SDA line low to indicate an Acknowledge (ACK). If the device didn't receive the transmitter's call, then the SDA line would stay high to indicate a Not Acknowledge (NACK).</p>
+						<p style="font-size:1.15em; line-height:23px">Assuming the device sent ACK on the SDA line, data is either sent to the device or read from the device depending on R/W. If R/W = 0 (write), then the device would send ACK upon receiving the data from the transmitter. If R/W = 1 (read), then the transmitter would send ACK upon receiving the data from the device.</p>
+						<p style="font-size:1.15em; line-height:23px">After the data transmission, the SDA line would still be pulled low from an ACK. The transmitter sends a STOP condition when the SDA line changes from low to high (on the rising edge) while SCL is high.</p>
+					</div>
+					<h4>2. Initializing Registers</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">The Bit Rate Generator Unit controls the time between each consecutive clock cycle sent by the transmitter. The excerpt of the datasheet below describes how to compute the SCL frequency, given the CPU clock frequency, TWI Bit Rate Register (TWBR), and prescaler value [1]. This project uses a prescaler of 1.</p>
+						<image src="BitRateGenUnit.jpg" width="800;" alt="Bit Rate Generator Unit"/>
+						<p style="font-size:1.15em; line-height:23px">Given that the I2C module's clock frequency is 100 kHz, the equation needs to be solved for TWBR in order to set that register. This turns out to be TWBR = ((CPU_Frequency/SCL_Frequency) - 16)/2. Below is the layout of the TWBR register [1].</p>
+						<image src="TWBR.jpg" width="800;" alt="TWI Bit Rate Register"/>
+						<p style="font-size:1.15em; line-height:23px">The TWBR is one byte long, but the Bit Rate Generator Unit needs to compute with values that need more bits of representation (i.e. 100,000 > 256 (the 8-bit unsigned integer max)). Therefore, the value of TWBR is temporarily calculated and stored in an unsigned 32-bit integer type variable (uint32_t) before applying a bit mask of 0xFF to ensure TWBR is only 1 byte. The two lines of code to accomplish this are: uint32_t twbr = ((F_CPU/SCL_freq) - 16)/2; TWBR = twbr & 0xFF</p>
+						<p style="font-size:1.15em; line-height:23px">The TWI Control Register (TWCR), shown below [1], includes the TWI Enable Bit (TWEN), to enable TWI operation, and the TWI Interrupt Enable (TWIE), to enable TWI interrupt requests.</p>
+						<image src="TWCR.jpg" width="800;" alt="TWI Control Register"/>
+						<p style="font-size:1.15em; line-height:23px">The code to set both of these bits to 1 is: TWCR = (1 << TWEN) | (1 << TWIE).</p>
+						<p style="font-size:1.15em; line-height:23px">The last TWI register to configure is the TWI Status Register (TWSR), detailed below [1].</p>
+						<image src="TWSR.jpg" width="800;" alt="TWI Status Register"/>
+						<p style="font-size:1.15em; line-height:23px">The TWPS1 and TWPS0 determine the bit rate prescaler. Table 21-8 [1] below shows all the configurations for the prescaler value.</p>
+						<image src="TWPS.jpg" width="800;" alt="TWI Prescaler Configuration Table"/>
+						<p style="font-size:1.15em; line-height:23px">Since this project uses a prescaler value of 1, TWPS1 and TWPS0 should be 0. So, there is no need to explicitly set these bits in the code.</p>
+						<p style="font-size:1.15em; line-height:23px">Lastly, the internal pull-up resistors to the SCL and SDA pins need to be enabled. This is done by setting the value of PC4 and PC5 to 1 while configuring the Port C Data Direction Register (DDRC) bits for PC4 and PC5 (DDC4/5) to input. Below is the layout of DDRC [1].</p>
+						<image src="DDRC.jpg" width="800;" alt="The Port C Data Direction Register"/>
+						<p style="font-size:1.15em; line-height:23px">Note that the initial values for DDC4 and DDC5 are already configured for input, so there is no need to set these bits in the code.</p>
+						<p style="font-size:1.15em; line-height:23px">Port C is set using the code: PORTC |= (1 << PORTC4) | (1 << PORTC5).</p>
+					</div>
+					
+					<h4>3. START Condition</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">An excerpt from the ATmega328p datasheet [1] below shows what bits in the TWCR to set in order for the hardware to generate a START condition once the TWI bus is free. Note that an X means that the value of the bit doesn't matter, it can be 0 or 1.</p>
+						<image src="TWIStart.jpg" width="800;" alt="TWI Start Condition sent by setting TWCR Register"/>
+						<p style="font-size:1.15em; line-height:23px">The code to send a START condition is placed in the twi_start function. To set the TWCR, this code is used: TWCR = (1 << TWINT) | (1 << TWSTA) | (1 << TWEN) | (1 << TWIE).</p>
+						<p style="font-size:1.15em; line-height:23px">Note that we also set TWIE to 1 to keep interrupts enabled. The interrupt enable flag needs to be set since the assignment operator (=) is used to set the TWCR. Usually, the bitwise OR assignment operator (|=) is used to only set the relevant bits, keeping the other bits in the register unchanged. But, the assignment operator is required in this instance to explicitly clear the TWINT bit (by setting it to 1). The assignment operator overwrites the value in the register with a new value. Since interrupts shouldn't be disabled here, TWIE is set along with the other relevant bits for the START condition.</p>
+						<p style="font-size:1.15em; line-height:23px">After the hardware has successfully sent the START condition, the status code in the TWSR will be 0x8. The code needs to validate that this is the case. This is done using a while loop that exits when the status is equal to TWI_START = 0x8. If, for any reason, the status is not TWI_START after a certain amount of time determined by the TWI_TIMEOUT constant, the twi_start function returns an error code (TWI_ERROR_START). Otherwise, the function returns TWI_OK to denote a successfully sent START condition.</p>
+					</div>
+					
+					<h4>4. Sending SLA+W and Receiving ACK</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">The address of the device the microcontroller wants to write to is sent along the SDA line, along with the write bit (0). This is also know as sending the SLA+W, and enables communication to only the device that was addressed, all other devices on the TWI bus are disabled.</p>
+						<p style="font-size:1.15em; line-height:23px">The twi_sla_w function houses the code to tell the hardware to send the SLA+W. Below is an excerpt from the datasheet showing the bit configuration of TWCR [1] to send the SLA+W.</p>
+						<image src="TWISLAW.jpg" width="800;" alt="Send TWI SLA+W by setting TWCR Register"/>
+						<p style="font-size:1.15em; line-height:23px">The TWCR can be set using the code: TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWIE). Similar to sending the START condition, the TWIE is explicitly set to 1. Also, a timeout timer is also used in the twi_sla_w function to return an error if enough time has passed without an ACK from the receiver. When an ACK is received by the microcontroller, the status will be TWI_MT_DATA_ACK, and the code will exit the spinlock and return TWI_OK.</p>
+					</div>
+					
+					<h4>5. Sending Data (Write) and Receiving ACK</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">After sending SLA+W and receiving ACK, the transmitter sends data and waits for another ACK from the receiver to signal a successful transmission. The twi_data_w_ack function begins the transmission of data by setting the TWCR, and waits for an ACK. Note that the data wanting to be sent is loaded into the needed register before this function is called (See TWI Write Function Section for details). Below shows the register configuration to tell the hardware to send the data to the receiver [1].</p>
+						<image src="TWISLAW.jpg" width="800;" alt="Send TWI data by setting TWCR Register"/>
+						<p style="font-size:1.15em; line-height:23px">Like the other functions discussed above, this one also uses a timeout timer with a spinlock to wait for an ACK.</p>
+					</div>
+					
+					<h4>6. STOP Condition</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">The twi_stop function configures the microcontroller's registers to send a STOP condition. The specific configuration needed to send a STOP condition is shown below [1].</p>
+						<image src="TWISTOP.jpg" width="800;" alt="Send TWI STOP condition by setting TWCR Register"/>
+						<p style="font-size:1.15em; line-height:23px">This function does not need to wait for anything (like an ACK), so it only sets the TWCR register using: TWCR = (1 << TWINT) | (1 << TWSTO) | (1 << TWEN) | (1 << TWIE).</p>
+					</div>
+					
+					<h4>7. TWI Write Function</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">The twi_write function puts together all the functions and processes needed to write a byte of data to the supplied device address. See Figure 21-10 and 21-12 [1] below for a visual overview of the processes and states of the TWI interface in the ATmega328p.</p>
+						<image src="TWIOverview.jpg" width="800;" alt="Interfacing the Application to the TWI in a Typical Transmission"/>
+						<p style="font-size:1.15em; line-height:23px"></p>
+						<image src="TWIMTStates.jpg" width="800;" alt="States in TWI Master Transmitter Mode"/>
+						<p style="font-size:1.15em; line-height:23px">First, the START condition is sent by calling the twi_start function. The return value of the twi_start function is then checked to make sure the START condition was sent successfully. If something went wrong, then the STOP condition is sent and the function returns the error.</p>
+						<p style="font-size:1.15em; line-height:23px">Then, the device address is loaded into TWDR in preparation to send SLA+W. The TWDR holds the next byte to be transmitted or the last byte that was received. Below is the layout of TWDR [1].</p>
+						<image src="TWDR.jpg" width="800;" alt="TWI Data Register"/>
+						<p style="font-size:1.15em; line-height:23px">The following code puts the device address into the TWDR along with the write bit (0) at the end: TWDR = (addr << 1) | 0, where addr is the device address of the I2C to talk to. Then the twi_sla_w function is called to send the contents of TWDR to the receiver. Just like the START condition, the return value of twi_sla_w is checked to make sure there was no error, and ends the transmission if there was an error.</p>
+						<p style="font-size:1.15em; line-height:23px">Once the SLA+W is transmitted and an ACK received, the data is loaded into TWDR in preparation to be sent. This is done using the code: TWDR = data, where data is an 8-bit variable. Then the twi_data_w_ack function is called to send the contents of TWDR to the intended device. The same error checks are used for this called function as previous ones.</p>
+						<p style="font-size:1.15em; line-height:23px">Lastly, the twi_stop function is called to end the transmission.</p>
+					</div>
+					
+					<h4>8. Interrupts</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">An Interrupt Service Routine (ISR) is used to retreive the status value from the TWSR every time there is a hardware interrupt from the TWI interface. In this ISR, the status bits are extracted from TWSR using a bit mask of 0xF8 (since the status only uses the five most significant bits from TWDR) and saved in the status variable. This is done using: status = (TWSR & 0xF8).</p>
+						<p style="font-size:1.15em; line-height:23px">The status variable needs to use the volatile keyword because it's value can change unexpectedly in the ISR. The volatile keyword tells the compiler to not optimize the variable and to access the variable in memory every time the program needs to load it.</p>
+					</div>
+				</div>
+			<h3>IV. LCD Driver</h3>
+				<div style="margin:5px 2% 30px 2%;">
+					<h4>1. LCD Hardware Overview</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">The LCD has two 8-bit registers: An Instruction Register (IR) and a Data Register (DR). The IR holds instruction codes sent by the microcontroller that map to low-level instructions for the LCD, such as clearing the display or writing to the LCD's RAM. The DR temporarily holds data destined to be stored or read from RAM.</p>
+						<p style="font-size:1.15em; line-height:23px">The LCD also has Display Data RAM (DDRAM) and Character Generator RAM (CGRAM). DDRAM is used to show characters on the display. Below is an illustration from the LCD's datasheet showing the DDRAM addresses for a 16-character x 2-line display [3], the type used in this project. Note that not all DDRAM addresses are visibile on-screen at the same time.</p>
+						<image src="DDRAMFigure.jpg" width="800;" alt="2-Line by 16-Character Display Data RAM Example"/>
+						<p style="font-size:1.15em; line-height:23px">CGRAM is used to store user-created characters. Table 4 [3] below shows the character code for each character in the ROM (read-only memory, characcters that cannot be changed), along with the codes for custom characters from CGRAM.</p>
+						<image src="CharacterTable.jpg" width="800;" alt="Correspondence between Character Codes and Character Patterns "/>
+						<p style="font-size:1.15em; line-height:23px">To use the LCD screen, it must be initialized first. This is either done by the hardware, given that the power supply complies with the standards listed in the datasheet, or the software by initializing by instructions. Software initialization will be used in this project because it doesn't require an external power supply. Section 3 will go into detail about initialization by instruction.</p>
+						<p style="font-size:1.15em; line-height:23px">After initialization, the LCD carries out instructions it receives from the microcontroller (through I2C). The low-level instructions are implemented in software as functions. For example, to tell the LCD to clear the display, the LCD_clear_display function is called which sends 0x1 to the LCD. When the LCD reads this data, it recognizes it as the Clear Display instruction, and clears the display accordingly. Section 4 will go into detail about hardware instructions.</p>
+					</div>
+					
+					<h4>2. Sending Data using TWI/I2C</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">The microcontroller sends communication to the LCD using the I2C protocol discussed earlier. To initialize this line of communication, a twi_init call is made in the LCD_init function.</p>
+						<p style="font-size:1.15em; line-height:23px">The send_twi function tells the TWI interface to send a write instruction to the LCD (by calling twi_write from the twi_hal module). The send_enable function sends data to the LCD in the form it's expecting: send the data with the enable bit high, wait at least 230ns, and then send the same data with the enable bit low. The send_enable function calls the send_twi function to send these two signals to the LCD.</p>
+						<p style="font-size:1.15em; line-height:23px">See the table below for the write timings [3], and note that the Enable pulse width needs to be high for a minimum of 230ns.</p>
+						<image src="bustiming.jpg" width="800;" alt="Bus Timing Characteristics for the Write Operation"/>
+					</div>
+					
+					<h4>3. Initialization Process</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">Before going through the initialization process, the device address needs to be determined. The device address is unique to each I2C device on the bus. The information needed to determine the device address is found in the datasheet for the I2C backpack module [2].</p>
+						<image src="PCF8574Addr.jpg" width="800;" alt="PCF8574 and PCF8574A slave addresses"/>
+						<p style="font-size:1.15em; line-height:23px">Since the chip used on the I2C module is PCF8574A, the fixed address has 0b0111 for it's most significant bits. The lower bits include the hardware selectable bits along with the R/W bit. These hardware selectable bits are configured through the solder pads A0-A2 on the I2C board (i.e. pulling A0 and A1 to ground would give a hardware selectable address of 0b100). The hardware selectable bits are used when there are multiple of the same board on the same I2C bus. For this project, there is only one LCD, so there is no need to configure A0-A2 and they can be left floating which has A0-A2=1. This results with a device address of 0b0111111.</p>
+						
+						<p style="font-size:1.15em; line-height:23px">The initialization by instruction process is summarized in the flowchart below [3]. The 4-bit interface is needed because the I2C backpack doesn't connect to the LCD data pins DB0-DB3. So, only 4 bits are used to send data (DB4-DB7).</p>
+						<image src="InitializeByInstruction.jpg" width="800;" alt="Flowchart for Initializing the LCD by Intruction for a 4-bit interface"/>
+						<p style="font-size:1.15em; line-height:23px">In the code, the initialization process is run in the lcd_init function. First, there is a 20ms delay (_delay_ms(20)) to make sure there is at least a 15ms delay after power is turned on. The RS and R/W pins are pulled low to begin sending commands by sending 0 over TWI using the function call send_twi(&lcd, 0), where &lcd is a reference to the LCD struct that holds it's device address.</p>
+						<p style="font-size:1.15em; line-height:23px">Then, a special function set instruction is sent to the LCD. The LCD is initially in 8-bit mode upon powering on. The multiple special function calls made in the initialization process are used to set the LCD to 4-bit mode. Two more additional special function set instructions are sent between delays.</p>
+						<p style="font-size:1.15em; line-height:23px">These special function set instructions set up this final function set instruction that sets the LCD to 4-bit mode using code: send_enable(&lcd, 0b0010 << 4).</p>
+						<p style="font-size:1.15em; line-height:23px">Now that the LCD is in 4-bit mode, the software implemented hardware functions are used for the rest of the initialization. The remaining instructions are function set with N=1 (2 line display) and F=0 (Usually font, but 2 line displays always use 5x8 characters), turn off the display (display toggle with D,C,B=0), clear display, and entry mode set with I/D=1 (Left to Right text) and S=0 (No display shift).</p>
+						<p style="font-size:1.15em; line-height:23px">This is done by using these lines of code: LCD_function_set(&lcd, 0, 1, 0); LCD_display_toggle(&lcd, 0, 0, 0); LCD_clear_display(&lcd); LCD_entry_mode_set(&lcd, 1, 0). This ends the LCD initialization by instruction process. The LCD is now ready to receive instructions from the microcontroller in 4-bit mode. The LCD_init function ends by turning the display ON.</p>
+					</div>
+		
+					<h4>4. Implementing Hardware Instructions with Software</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">To interface with the LCD, the LCD's hardware instructions are implemented in software as functions. These functions encode send the encoded instruction to the LCD. For example, the instruction code to return the cursor to home is 0b0000001X, where X means the value doesn't matter. By calling the LCD_return_home function, the microcontroller sends the byte 0b00000010 (0x02 in hexidecimal) to the LCD. This abstracts the instruction codes from the programmer.</p>
+						<p style="font-size:1.15em; line-height:23px">Table 6 [3] shows all the instruction codes in the LCD's instruction set. Each is implemented as it's own function in the LCD module.</p>
+						<image src="LCDInstructions1.jpg" width="800;" alt="Table of LCD Hardware Instructions"/>
+						<p style="font-size:1.15em; line-height:23px"></p>
+						<image src="LCDInstructions2.jpg" width="800;" alt="Continued Table of Instructions"/>
+					</div>
+					<h4>5. Additional Software Functions</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						<p style="font-size:1.15em; line-height:23px">There are additional functions in the LCD module that aren't hardware instructions, but are useful when interfacing with an LCD. These functions are LCD_write_string, LCD_toggle_backlight, LCD_set_cursor, and LCD_add_character.</p>
+					</div>
+				</div>
+				
+			<!--
+			<h3>V. Calculator Functionality</h3>
+				<div style="margin:5px 2% 30px 2%;">
+					<h4>1. The Shunting Yard Algorithm</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						Describe general algorithm
+						<p style="font-size:1.15em; line-height:23px">TODO</p>
+					</div>
+					<h4>2. Modified Shunting Yard</h4>
+					<div style="margin:5px 2% 30px 2%;">
+						Describe changes to evaluate an expression
+						<p style="font-size:1.15em; line-height:23px">TODO</p>
+					</div>
+				</div>
+			-->
+		</div>
+		
+		<div style="margin: 20px 2% 30px 2%;">
+			<h2>References</h2>
+			<div style="margin:5px 2% 30px 2%;">
+				<p style="font-size:1.15em; line-height:23px">[1] Atmel, "8-bit AVR Microcontroller with 32K Bytes In-System
+Programmable Flash", ATmega328p datasheet, Jan. 2015, <a href="https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf">https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf</a>.</p>
+				<p style="font-size:1.15em; line-height:23px">[2] NXP, "Remote 8-bit I/O expander for I2C-bus with interrupt", PCF8574;PCF8574A datasheet, 27 May 2013, <a href="https://www.nxp.com/docs/en/data-sheet/PCF8574_PCF8574A.pdf">https://www.nxp.com/docs/en/data-sheet/PCF8574_PCF8574A.pdf</a>.</p>
+				<p style="font-size:1.15em; line-height:23px">[3] Hitachi, "Dot Matrix Liquid Crystal Display Controller/Driver", HD44780U datasheet, 1998, <a href="https://www.sparkfun.com/datasheets/LCD/HD44780.pdf">https://www.sparkfun.com/datasheets/LCD/HD44780.pdf</a>.</p>
+			</div>
+		</div>
+		
+		</div>
+	</body>
+</html>
