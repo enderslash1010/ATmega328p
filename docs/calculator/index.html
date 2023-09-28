@@ -17,15 +17,15 @@
 				<figcaption style="line-height:23px;">Video of host computer terminal during operation</figcaption>
 			</div>
 		</div>
-		<div style="display:flex">
+		<div style="display:flex;">
 			<div style="margin: 20px 2% 20px 2%;">
-				<image src="Schematic.jpg" width="1000;" alt="Picture of KiCAD Schematic"/>
+				<image src="Schematic.jpg" alt="Picture of KiCAD Schematic" width="800px;"/>
 				<figcaption style="line-height:23px;">KiCAD Schematic</figcaption>
 			</div>
-			<div style="margin:25px 2% 50px 2%;">
+			<div style="margin:25px 2% 50px 2%; min-width:700px;">
 					<h2>Description</h2>
 					<div style="margin:5px 2% 30px 2%;">
-						<p style="font-size:1.15em; line-height:23px">The user sends input using a keyboard, which is then sent to the microcontroller through the Universal Asynchronous Receiver-Transmitter (UART) communication protocol. The microcontroller keeps any valid inputs, like numbers and mathematical operators (+, -, *, /), and ignores any invalid input, like letters. Valid input is sent to the Liquid Crystal Display (LCD) screen using the Inter-Integrated Circuit (I2C) communication protocol, and back to the host computer using UART.</p>
+						<p style="font-size:1.15em; line-height:23px;">The user sends input using a keyboard, which is then sent to the microcontroller through the Universal Asynchronous Receiver-Transmitter (UART) communication protocol. The microcontroller keeps any valid inputs, like numbers and mathematical operators (+, -, *, /), and ignores any invalid input, like letters. Valid input is sent to the Liquid Crystal Display (LCD) screen using the Inter-Integrated Circuit (I2C) communication protocol, and back to the host computer using UART.</p>
 						<p style="font-size:1.15em; line-height:23px">When the user presses 'Enter', the microcontroller evaluates the inputted mathematical expression using a modified Shunting Yard algorithm. The evaluated result is then output to the second line on the LCD and to the host computer's terminal. Pressing 'Enter' when no expression is entered prompts the user to enter a mathematical expression. After an expression is evaluated, the user can input another expression.</p>
 						<p style="font-size:1.15em; line-height:23px">If the right edge of the LCD screen is reached while inputting an expression, the display is shifted by 1 character to the right to show the most recently inputted character.</p> 
 					</div>
